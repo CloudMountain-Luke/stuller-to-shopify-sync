@@ -1,0 +1,5 @@
+# Handle line endings automatically for text files
+* text=auto
+
+# Ignore node_modules folder, treat as binary
+node_modules/** -text

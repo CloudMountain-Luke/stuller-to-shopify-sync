@@ -5,7 +5,17 @@ const router = express.Router();
 // Route to sync products from Stuller to Shopify
 router.get('/stuller/products', async (req, res) => {
   try {
-    console.log('Fetching products from Stuller API');
+    console.log('Request received on /stuller/products');
+    const stullerResponse = await axios.post(process.env.STULLER_API_URL, {
+      // API request details
+    });
+    res.status(200).json(stullerResponse.data);
+  } catch (error) {
+    console.error('Error fetching products from Stuller API:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
     // Prepare Stuller API credentials
     const stullerUsername = process.env.STULLER_API_USERNAME;
@@ -52,10 +62,10 @@ router.get('/stuller/products', async (req, res) => {
     }
 
     res.status(200).json({ message: "Products synced successfully" });
-  } catch (error) {
+  (error) 
     console.error('Error syncing products:', error);
     res.status(500).json({ error: 'An error occurred while syncing products' });
-  }
-});
+  
+;
 
 module.exports = router;
