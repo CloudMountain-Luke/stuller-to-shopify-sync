@@ -2,20 +2,22 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 
-// Error log file path
-const errorLogFilePath = path.join(__dirname, 'sync_errors.log');
+// Path for error and missing SKU logs
+const errorLogPath = path.join(__dirname, '../logs/error_log.txt');
+const missingSKUsLogPath = path.join(__dirname, '../logs/missing_skus_log.txt');
 
-// Function to log errors to a file
-function logErrorToFile(errorMessage) {
+// Function to log errors
+function logError(message) {
     const timestamp = new Date().toISOString();
-    const logMessage = `[${timestamp}] ${errorMessage}\n`;
-    
-    // Append error message to the log file
-    fs.appendFile(errorLogFilePath, logMessage, (err) => {
-        if (err) {
-            console.error('Failed to write to log file:', err.message);
-        }
-    });
+    const logMessage = `[${timestamp}] ${message}\n`;
+    fs.appendFileSync(errorLogPath, logMessage, 'utf8');
+}
+
+// Function to log missing SKUs
+function logMissingSKU(sku) {
+    const timestamp = new Date().toISOString();
+    const logMessage = `[${timestamp}] Missing SKU: ${sku}\n`;
+    fs.appendFileSync(missingSKUsLogPath, logMessage, 'utf8');
 }
 
 // Function to check if a Shopify product exists by SKU
@@ -29,11 +31,13 @@ async function checkShopifyProductBySKU(stullerSKU) {
         });
 
         if (response.data.products.length > 0) {
-            return response.data.products[0];
+            return response.data.products[0];  // Return the product if found
+        } else {
+            logMissingSKU(stullerSKU);  // Log the SKU if not found
+            return null;
         }
-        return null; // Product not found on Shopify
     } catch (error) {
-        console.error(`Error fetching product with SKU ${stullerSKU} from Shopify: ${error.message}`);
+        logError(`Error fetching product with SKU ${stullerSKU} from Shopify: ${error.message}`);
         throw new Error(`Failed to fetch Shopify product by SKU: ${stullerSKU}`);
     }
 }
@@ -59,14 +63,14 @@ async function syncProductWithShopify(stullerProduct, shopifyProduct) {
                 tags: stullerProduct.WebCategories ? stullerProduct.WebCategories.map(cat => cat.Name).join(", ") : shopifyProduct.tags,
                 variants: [
                     {
-                        id: shopifyProduct.variants[0].id, // Shopify product variant ID
-                        option1: stullerProduct.RingSize || "Default", // Map Ring Size to Option1 (Size)
+                        id: shopifyProduct.variants[0].id,
+                        option1: stullerProduct.RingSize || "Default",
                         price: price ? price.toString() : shopifyProduct.variants[0].price,
                         inventory_quantity: stullerProduct.OnHand || shopifyProduct.variants[0].inventory_quantity,
-                        sku: stullerProduct.SKU, // Use Stuller SKU for this size variant
-                        grams: stullerProduct.GramWeight, // Weight in grams
-                        weight: stullerProduct.Weight || shopifyProduct.variants[0].weight, // Map weight
-                        fulfillment_service: "manual", // Default to manual fulfillment
+                        sku: stullerProduct.SKU,
+                        grams: stullerProduct.GramWeight,
+                        weight: stullerProduct.Weight || shopifyProduct.variants[0].weight,
+                        fulfillment_service: "manual",
                         requires_shipping: true,
                         taxable: true,
                     }
@@ -91,33 +95,27 @@ async function syncProductWithShopify(stullerProduct, shopifyProduct) {
 
         console.log(`Successfully synced product with SKU: ${stullerProduct.SKU}`);
     } catch (error) {
-        const errorMessage = `Error syncing product with SKU ${stullerProduct.SKU}: ${error.response ? JSON.stringify(error.response.data, null, 2) : error.message}`;
-        
-        console.error(errorMessage);
-        
-        // Log the error to a file
-        logErrorToFile(errorMessage);
+        logError(`Error syncing product with SKU ${stullerProduct.SKU}: ${error.message}`);
+        throw new Error(`Failed to sync product with SKU: ${stullerProduct.SKU}`);
     }
 }
 
-// Function to sync all products
-async function syncAllProducts(stullerProducts) {
+// Main sync function to process SKUs
+async function syncProducts(stullerProducts) {
     for (const stullerProduct of stullerProducts) {
         try {
             const shopifyProduct = await checkShopifyProductBySKU(stullerProduct.SKU);
             if (shopifyProduct) {
                 await syncProductWithShopify(stullerProduct, shopifyProduct);
             } else {
-                console.log(`Skipping product with SKU: ${stullerProduct.SKU} (not found on Shopify)`);
+                console.log(`Skipping SKU: ${stullerProduct.SKU}, not found on Shopify`);
             }
         } catch (error) {
-            // Log any error during the syncing process and move to the next SKU
-            const errorMessage = `Failed to process SKU: ${stullerProduct.SKU}. Error: ${error.message}`;
-            console.error(errorMessage);
-            logErrorToFile(errorMessage);
+            logError(`Failed to sync SKU ${stullerProduct.SKU}: ${error.message}`);
+            console.log(`Continuing to the next SKU after error with SKU: ${stullerProduct.SKU}`);
         }
     }
 }
 
-// Export the functions for use in other files
-module.exports = { checkShopifyProductBySKU, syncProductWithShopify, syncAllProducts };
+// Export functions
+module.exports = { checkShopifyProductBySKU, syncProductWithShopify, syncProducts };
