@@ -1,48 +1,36 @@
 const axios = require('axios');
 
-// Function to fetch products from Stuller using the Product API
-async function fetchStullerProducts() {
-  const baseUrl = process.env.STULLER_API_URL; // Example: "https://api.stuller.com/v2/products"
-  const authToken = process.env.STULLER_API_TOKEN; // Base64 encoded token
+// Function to fetch products from Stuller
+async function fetchStullerProducts(nextPage = null) {
+  try {
+    const username = process.env.STULLER_API_USERNAME;
+    const password = process.env.STULLER_API_PASSWORD;
+    const stullerApiUrl = process.env.STULLER_API_URL;
 
-  let products = [];
-  let nextPage = null;
+    // Create Basic Auth Token
+    const authToken = Buffer.from(`${username}:${password}`).toString('base64');
 
-  do {
-    try {
-      // Build request body
-      const requestBody = nextPage
-        ? { NextPage: nextPage }
-        : { Include: ["All"], Filter: ["Orderable", "OnPriceList"], Limit: 500 };
+    // Request body
+    const requestBody = nextPage
+      ? { "NextPage": nextPage }
+      : {
+          "Include": ["All"],
+          "Filter": ["Orderable", "OnPriceList"]
+        };
 
-      const response = await axios.post(
-        baseUrl,
-        requestBody,
-        {
-          headers: {
-            'Authorization': `Basic ${authToken}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          }
-        }
-      );
-
-      const responseData = response.data;
-      if (responseData && responseData.Products) {
-        products = [...products, ...responseData.Products];
-        nextPage = responseData.NextPage;
-      } else {
-        break; // No more products
+    // Make API request
+    const response = await axios.post(stullerApiUrl, requestBody, {
+      headers: {
+        'Authorization': `Basic ${authToken}`,
+        'Content-Type': 'application/json'
       }
+    });
 
-    } catch (error) {
-      console.error('Error fetching products from Stuller:', error.message);
-      throw error;
-    }
-
-  } while (nextPage !== null); // Keep requesting while there's a next page
-
-  return products;
+    return response.data; // Return the response (including NextPage, if available)
+  } catch (error) {
+    console.error('Error fetching products from Stuller:', error.message);
+    throw error;
+  }
 }
 
 module.exports = { fetchStullerProducts };

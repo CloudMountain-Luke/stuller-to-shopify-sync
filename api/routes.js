@@ -1,34 +1,42 @@
 const express = require('express');
 const router = express.Router();
-
-// Import existing and new services
 const { fetchStullerProducts } = require('../services/stullerService');
 const { createShopifyProduct } = require('../services/shopifyService');
-const { fetchProductDetails } = require('../services/productService');
-const { fetchProductConfiguration } = require('../services/productConfigService');
-const { createVirtualProduct } = require('../services/virtualProductService');
-const { fetchGemDetails } = require('../services/gemService');
-const { placeOrder } = require('../services/orderService');
-const { fetchInvoice } = require('../services/invoiceService');
 
-// Refined Route to fetch all Stuller products and sync to Shopify
+// Route to fetch all products from Stuller and sync to Shopify
 router.get('/sync', async (req, res) => {
     console.log('Sync route accessed');
 
     try {
-        // Step 1: Fetch all Stuller products
-        const stullerProducts = await fetchStullerProducts();
-        if (!stullerProducts || stullerProducts.length === 0) {
+        let nextPage = null;
+        let allStullerProducts = [];
+        let page = 1;
+
+        // Fetch all pages of Stuller products
+        do {
+            console.log(`Fetching page ${page} from Stuller...`);
+            const stullerResponse = await fetchStullerProducts(nextPage);
+
+            if (stullerResponse && stullerResponse.Products) {
+                allStullerProducts = allStullerProducts.concat(stullerResponse.Products);
+                nextPage = stullerResponse.NextPage;
+            } else {
+                nextPage = null;
+            }
+
+            page++;
+        } while (nextPage);
+
+        if (allStullerProducts.length === 0) {
             return res.status(404).json({ error: 'No products found on Stuller.' });
         }
-
-        console.log(`Fetched ${stullerProducts.length} products from Stuller`);
+        console.log(`Fetched ${allStullerProducts.length} products from Stuller`);
 
         const failedProducts = [];
         let successfulSyncs = 0;
 
-        // Step 2: Sync Stuller products to Shopify in batches
-        for (const product of stullerProducts) {
+        // Sync Stuller products to Shopify
+        for (const product of allStullerProducts) {
             try {
                 await createShopifyProduct(product);
                 successfulSyncs++;
@@ -49,18 +57,5 @@ router.get('/sync', async (req, res) => {
         res.status(500).json({ error: 'Failed to sync products due to an internal error.' });
     }
 });
-
-// Route to fetch product details from Stuller by SKU
-router.get('/product/:sku', async (req, res) => {
-    const sku = req.params.sku;
-    try {
-        const productDetails = await fetchProductDetails(sku);
-        res.json(productDetails);
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch product details.' });
-    }
-});
-
-// Other routes omitted for brevity...
 
 module.exports = router;
