@@ -17,8 +17,8 @@ app.use(express.json());
 // Import routes
 let productRoutes, webhookRoutes;
 try {
-    productRoutes = require('./api/routes');
-    webhookRoutes = require('./api/webhook');
+    productRoutes = require('./api/routes');  // Product sync routes
+    webhookRoutes = require('./api/webhook'); // Webhook routes for Shopify
 } catch (error) {
     console.error("Unable to load routes.", error);
     process.exit(1);
@@ -26,7 +26,7 @@ try {
 
 // Mount product and webhook routes
 app.use('/api', productRoutes);
-app.use('/api', webhookRoutes);
+app.use('/api', webhookRoutes);  // Mounts webhook routes at /api/webhook/...
 
 // Default route for server check
 app.get('/', (req, res) => {
