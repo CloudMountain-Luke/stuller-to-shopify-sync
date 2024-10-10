@@ -1,31 +1,36 @@
 const express = require('express');
 const router = express.Router();
-const { fetchStullerProducts } = require('../Services/stullerService');  // Ensure this matches the actual path
-const { createShopifyProduct } = require('../services/shopifyService');
+const { fetchMatchingStullerProducts } = require('../services/stullerService');
+const { fetchShopifyProducts, extractSKUsFromShopifyProducts, createShopifyProduct } = require('../services/shopifyService');
 
-// Route to fetch products from Stuller and sync to Shopify
+// Route to fetch products from Stuller and sync to Shopify based on Shopify SKUs
 router.get('/sync', async (req, res) => {
-    console.log('Sync route accessed'); // Log for debugging
+    console.log('Sync route accessed');
 
     try {
-        const stullerProducts = await fetchStullerProducts();
-        console.log(`Fetched ${stullerProducts.length} products from Stuller`);
+        // Step 1: Fetch all Shopify products and extract SKUs
+        const shopifyProducts = await fetchShopifyProducts();
+        const shopifySKUs = extractSKUsFromShopifyProducts(shopifyProducts);
+        console.log(`Fetched ${shopifySKUs.length} SKUs from Shopify`);
+
+        // Step 2: Fetch matching Stuller products based on Shopify SKUs
+        const stullerProducts = await fetchMatchingStullerProducts(shopifySKUs);
+        console.log(`Fetched ${stullerProducts.length} matching products from Stuller`);
 
         const failedProducts = [];
         let successfulSyncs = 0;
 
-        // Sync each product with Shopify
+        // Step 3: Sync Stuller products to Shopify (can be skipped initially if focusing only on fetching data)
         for (const product of stullerProducts) {
             try {
                 await createShopifyProduct(product);
                 successfulSyncs++;
             } catch (error) {
                 console.error(`Failed to sync product SKU: ${product.SKU}, error: ${error.message}`);
-                failedProducts.push(product.SKU); // Track failed products
+                failedProducts.push(product.SKU);
             }
         }
 
-        // Response summary
         res.json({
             message: 'Stuller products sync process completed!',
             syncedProducts: successfulSyncs,
@@ -33,8 +38,8 @@ router.get('/sync', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error fetching products from Stuller:', error.message);
-        res.status(500).json({ error: 'Failed to fetch products from Stuller.' });
+        console.error('Error syncing products:', error.message);
+        res.status(500).json({ error: 'Failed to sync products.' });
     }
 });
 
