@@ -1,17 +1,4 @@
 const axios = require('axios');
-const axiosRetry = require('axios-retry');
-
-// Add retry functionality to handle rate limits
-axiosRetry(axios, {
-    retries: 3, // Retry 3 times before failing
-    retryDelay: (retryCount) => {
-        console.log(`Retry attempt: ${retryCount}`);
-        return retryCount * 1000; // Wait 1 second for the first retry, 2 seconds for the second, etc.
-    },
-    retryCondition: (error) => {
-        return error.response && (error.response.status === 429 || error.response.status >= 500);
-    }
-});
 
 // Headers for the request (including Basic Authentication)
 const auth = Buffer.from(`${process.env.STULLER_API_USERNAME}:${process.env.STULLER_API_PASSWORD}`).toString('base64');
