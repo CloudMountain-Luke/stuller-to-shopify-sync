@@ -40,6 +40,9 @@ async function syncProductWithShopify(stullerProduct, shopifyProduct) {
             }
         };
 
+        // Log the product data being sent to Shopify
+        console.log('Sending product data to Shopify:', updatedProductData);
+
         // Make API request to update the product on Shopify
         await axios.put(shopifyUpdateUrl, updatedProductData, {
             headers: {
