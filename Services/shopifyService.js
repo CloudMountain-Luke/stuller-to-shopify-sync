@@ -38,13 +38,18 @@ async function checkShopifyProductBySKU(stullerSKU) {
         }
     } catch (error) {
         logError(`Error fetching product with SKU ${stullerSKU} from Shopify: ${error.message}`);
-        throw new Error(`Failed to fetch Shopify product by SKU: ${stullerSKU}`);
+        return null;  // Prevent stopping the process by not throwing an error
     }
 }
 
 // Function to sync a Stuller product with a Shopify product by SKU
 async function syncProductWithShopify(stullerProduct, shopifyProduct) {
     try {
+        if (!shopifyProduct) {
+            logError(`Shopify product not found for SKU: ${stullerProduct.SKU}`);
+            return; // Skip if product doesn't exist
+        }
+
         const shopifyUpdateUrl = `https://${process.env.SHOPIFY_STORE_URL}/admin/api/2024-10/products/${shopifyProduct.id}.json`;
 
         // Extract price
@@ -96,7 +101,6 @@ async function syncProductWithShopify(stullerProduct, shopifyProduct) {
         console.log(`Successfully synced product with SKU: ${stullerProduct.SKU}`);
     } catch (error) {
         logError(`Error syncing product with SKU ${stullerProduct.SKU}: ${error.message}`);
-        throw new Error(`Failed to sync product with SKU: ${stullerProduct.SKU}`);
     }
 }
 
