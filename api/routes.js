@@ -3,7 +3,7 @@ const router = express.Router();
 
 // Import existing and new services
 const { fetchMatchingStullerProducts } = require('../services/stullerService');
-const { fetchShopifyProducts, createShopifyProduct } = require('../services/shopifyService');
+const { fetchShopifyProducts } = require('../services/shopifyService');
 const { fetchProductDetails } = require('../services/productService');
 const { fetchProductConfiguration } = require('../services/productConfigService');
 const { createVirtualProduct } = require('../services/virtualProductService');
