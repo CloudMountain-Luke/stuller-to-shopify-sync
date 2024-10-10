@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { fetchStullerProducts } = require('../Services/stullerService');
-const { syncProductWithShopify, checkShopifyProductBySKU } = require('../services/shopifyService');
+const { fetchStullerProducts } = require('../services/stullerService');
+const { syncProductWithShopify, checkShopifyProductBySKU } = require('../services/shopifyService');  // Make sure this line is correct
 
 // Route to fetch products from Stuller and sync with Shopify
 router.get('/sync', async (req, res) => {
