@@ -27,4 +27,15 @@ async function fetchShopifyProducts() {
     return allShopifyProducts;
 }
 
+async function createShopifyProduct(productData) {
+    try {
+        const response = await axios.post('https://api.shopify.com/v1/products', productData);
+        console.log('Product created successfully:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating Shopify product:', error);
+        throw error;
+    }
+}
+
 module.exports = { fetchShopifyProducts, createShopifyProduct };
