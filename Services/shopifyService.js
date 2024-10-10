@@ -1,10 +1,23 @@
 const axios = require('axios');
+const axiosRetry = require('axios-retry');
+
+// Add retry functionality to handle rate limits
+axiosRetry(axios, {
+    retries: 3, // Retry 3 times before failing
+    retryDelay: (retryCount) => {
+        console.log(`Retry attempt: ${retryCount}`);
+        return retryCount * 1000; // Wait 1 second for the first retry, 2 seconds for the second, etc.
+    },
+    retryCondition: (error) => {
+        return error.response && (error.response.status === 429 || error.response.status >= 500);
+    }
+});
 
 // Function to fetch all Shopify products and return their SKUs
 async function fetchShopifyProducts() {
     let allShopifyProducts = [];
     let nextPage = 1;
-    const limit = 250;  // Shopify allows a maximum of 250 products per page
+    const limit = 250;
 
     try {
         while (nextPage) {
@@ -25,36 +38,6 @@ async function fetchShopifyProducts() {
     }
 
     return allShopifyProducts;
-}
-
-// Function to extract SKUs from the fetched Shopify products
-function extractSKUsFromShopifyProducts(products) {
-    return products.map(product => product.variants.map(variant => variant.sku)).flat();
-}
-
-// Function to create a product in Shopify (optional for later steps)
-async function createShopifyProduct(product) {
-    const shopifyUrl = `https://${process.env.SHOPIFY_API_KEY}:${process.env.SHOPIFY_PASSWORD}@${process.env.SHOPIFY_SHOP_NAME}.myshopify.com/admin/api/2024-10/products.json`;
-    const payload = {
-        product: {
-            title: product.Description,
-            body_html: product.LongGroupDescription,
-            vendor: 'Stuller',
-            variants: [{
-                price: product.Price.Value,
-                sku: product.SKU
-            }],
-            images: product.Images.map(image => ({ src: image.FullUrl }))
-        }
-    };
-
-    try {
-        const response = await axios.post(shopifyUrl, payload);
-        return response.data;
-    } catch (error) {
-        console.error('Error creating Shopify product:', error.message);
-        throw error;
-    }
 }
 
 module.exports = { fetchShopifyProducts, extractSKUsFromShopifyProducts, createShopifyProduct };
