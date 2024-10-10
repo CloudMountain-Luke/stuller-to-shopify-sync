@@ -3,7 +3,7 @@ const router = express.Router();
 
 // Import existing and new services
 const { fetchMatchingStullerProducts } = require('../services/stullerService');
-const { fetchShopifyProducts, extractSKUsFromShopifyProducts, createShopifyProduct } = require('../services/shopifyService');
+const { fetchShopifyProducts, createShopifyProduct } = require('../services/shopifyService');
 const { fetchProductDetails } = require('../services/productService');
 const { fetchProductConfiguration } = require('../services/productConfigService');
 const { createVirtualProduct } = require('../services/virtualProductService');
@@ -16,13 +16,11 @@ router.get('/sync', async (req, res) => {
     console.log('Sync route accessed');
 
     try {
-        // Step 1: Fetch all Shopify products and extract SKUs
+        // Step 1: Fetch all Shopify products
         const shopifyProducts = await fetchShopifyProducts();
         if (!shopifyProducts || shopifyProducts.length === 0) {
             return res.status(404).json({ error: 'No products found on Shopify.' });
         }
-        const shopifySKUs = extractSKUsFromShopifyProducts(shopifyProducts);
-        console.log(`Fetched ${shopifySKUs.length} SKUs from Shopify`);
 
         // Step 2: Fetch matching Stuller products based on Shopify SKUs
         const stullerProducts = await fetchMatchingStullerProducts(shopifySKUs);

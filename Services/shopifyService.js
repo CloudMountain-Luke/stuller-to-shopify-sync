@@ -1,7 +1,5 @@
 const axios = require('axios');
 
-const { extractSKUsFromShopifyProducts } = require('./someOtherFile');
-
 // Function to fetch all Shopify products and return their SKUs
 async function fetchShopifyProducts() {
     let allShopifyProducts = [];
@@ -29,4 +27,4 @@ async function fetchShopifyProducts() {
     return allShopifyProducts;
 }
 
-module.exports = { fetchShopifyProducts, extractSKUsFromShopifyProducts, createShopifyProduct };
+module.exports = { fetchShopifyProducts, createShopifyProduct };
